@@ -14,6 +14,6 @@ public class RouteDoesntExistException extends Exception {
 
     public RouteDoesntExistException(String orig, String dest) {
         super("Route doesn't exist:  " + orig + " [origin] -> "
-                + dest + "[destination]");
+                + dest + " [destination]");
     }
 }

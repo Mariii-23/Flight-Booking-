@@ -13,7 +13,7 @@
     </Appenders>
 
     <Loggers>
-        <Root level="info">
+        <Root level="off">
             <AppenderRef ref="console"/>
         </Root>
         <Logger name="org.apache.test" level="trace" additivity="false">
