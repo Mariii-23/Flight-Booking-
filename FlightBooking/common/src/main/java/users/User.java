@@ -5,12 +5,14 @@ import encryption.BCrypt;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * User class.
  */
 public abstract class User {
 
+    protected final ReentrantLock lock;
     /**
      * Username.
      */
@@ -34,6 +36,7 @@ public abstract class User {
         this.password = BCrypt.hashpw(password, BCrypt.gensalt());
         this.username = username;
         this.reservations = new HashSet<>();
+        this.lock = new ReentrantLock();
     }
 
     /**
@@ -43,7 +46,12 @@ public abstract class User {
      * @return Is password is correct.
      */
     public boolean validPassword(String password) {
-        return BCrypt.checkpw(password, this.password);
+        try {
+            lock.lock();
+            return BCrypt.checkpw(password, this.password);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -52,7 +60,12 @@ public abstract class User {
      * @return Username of this object.
      */
     public String getUsername() {
-        return username;
+        try {
+            lock.lock();
+            return username;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -61,27 +74,61 @@ public abstract class User {
      * @param newPassword new password.
      */
     public void changerUserPassword(String newPassword) {
-        this.password = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+        try {
+            lock.lock();
+            this.password = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void addReservation(UUID reservation) {
-        this.reservations.add(reservation);
+        try {
+            lock.lock();
+            this.reservations.add(reservation);
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void removeReservation(UUID reservation) {
-        this.reservations.remove(reservation);
+        try {
+            lock.lock();
+            this.reservations.remove(reservation);
+        } finally {
+            lock.unlock();
+        }
     }
 
     public boolean containsReservation(UUID reservation) {
-        return this.reservations.contains(reservation);
+        try {
+            lock.lock();
+            return this.reservations.contains(reservation);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public Set<UUID> getReservations() {
+        try {
+            lock.lock();
+            return new HashSet<>(reservations);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
-        return username.equals(user.username) &&
-                password.equals(user.password);
+        try {
+            lock.lock();
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            User user = (User) o;
+            return username.equals(user.username) &&
+                    password.equals(user.password);
+        } finally {
+            lock.unlock();
+        }
     }
 }

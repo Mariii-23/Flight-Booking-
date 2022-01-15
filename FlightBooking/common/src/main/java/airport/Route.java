@@ -33,4 +33,13 @@ public class Route {
         this.destination = destination;
         this.capacity = capacity;
     }
+
+    @Override
+    public String toString() {
+        return "Route{" +
+                "origin='" + origin + '\'' +
+                ", destination='" + destination + '\'' +
+                ", capacity=" + capacity +
+                '}';
+    }
 }

@@ -25,22 +25,42 @@ public class Client extends User {
     }
 
     public boolean emptyNotifications() {
-        return notifications.isEmpty();
+        try {
+            super.lock.lock();
+            return notifications.isEmpty();
+        } finally {
+            super.lock.unlock();
+        }
     }
 
     public Notification removeNotification() {
-        return notifications.remove();
+        try {
+            super.lock.lock();
+            return notifications.remove();
+        } finally {
+            super.lock.unlock();
+        }
     }
 
     public void addNotification(Notification notification) {
-        notifications.add(notification);
+        try {
+            super.lock.lock();
+            notifications.add(notification);
+        } finally {
+            super.lock.unlock();
+        }
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Client client = (Client) o;
-        return super.equals(o) && notifications.equals(client.notifications);
+        try {
+            super.lock.lock();
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Client client = (Client) o;
+            return super.equals(o) && notifications.equals(client.notifications);
+        } finally {
+            super.lock.unlock();
+        }
     }
 }

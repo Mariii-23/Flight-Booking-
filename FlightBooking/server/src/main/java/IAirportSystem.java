@@ -28,6 +28,7 @@ public interface IAirportSystem {
      * @param day the day.
      * @return all canceled @see airport.Reservation .
      */
+    // FIXME USERNAME -> garantir q é admin
     Set<Reservation> cancelDay(LocalDate day) throws DayAlreadyCanceledException;
 
     /**
@@ -43,7 +44,8 @@ public interface IAirportSystem {
      * @throws RouteDoesntExistException          if there is no route possible.
      */
     UUID reserveFlight(String userName, List<String> cities, LocalDate start, LocalDate end)
-            throws BookingFlightsNotPossibleException, RouteDoesntExistException;
+            throws BookingFlightsNotPossibleException, RouteDoesntExistException, UserNotFoundException;
+
 
     /**
      * Cancels a flight.
@@ -64,6 +66,13 @@ public interface IAirportSystem {
      * @return the list of the existent routes.
      */
     List<Route> getRoutes();
+
+    /**
+     * @param username the name of the user
+     * @return Reservations
+     * @throws UserNotFoundException Invalid username.
+     */
+    Set<Reservation> getReservationsFromClient(String username) throws UserNotFoundException;
 
     /**
      * Registers a client into the system.

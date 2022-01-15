@@ -17,6 +17,11 @@ public class Admin extends User {
 
     @Override
     public boolean equals(Object o) {
-        return super.equals(o);
+        try {
+            super.lock.lock();
+            return super.equals(o);
+        } finally {
+            super.lock.unlock();
+        }
     }
 }

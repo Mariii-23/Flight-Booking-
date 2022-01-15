@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Represents a flight.
@@ -34,7 +36,15 @@ public class Flight {
      * to know all reservations associated to cancel then.
      * Like, if a connection flight is canceled, we need to cancel the flights associated to that connection
      */
-    private final Set<UUID> reservations;
+    private final Set<Reservation> reservations;
+
+    //private final ReadWriteLock rwReservation ;
+    // Get reservations
+    private final Lock readLockReservation;
+
+    // Adicionar a reserva depois de ter sido bloqueado.
+    private final Lock writeLockReservation;
+
 
     private int currentOccupation;
 
@@ -50,30 +60,42 @@ public class Flight {
         this.route = route;
         this.date = date;
         this.reservations = new HashSet<>();
+        ReentrantReadWriteLock rwReservation = new ReentrantReadWriteLock();
+        this.readLockReservation = rwReservation.readLock();
+        this.writeLockReservation = rwReservation.writeLock();
     }
 
     /**
      * Adds a reservation to this flight.
      *
-     * @param reservationId the id of the reservation.
+     * @param reservation the id of the reservation.
      * @return true if this set did not already contain the specified element.
      * @throws FullFlightException is launched if aren't seats available.
      */
-    public boolean addReservation(UUID reservationId) throws FullFlightException {
-        if (route.capacity > reservations.size())
-            return this.reservations.add(reservationId);
-        throw new FullFlightException();
+    public boolean addReservation(Reservation reservation) throws FullFlightException {
+        try {
+            writeLockReservation.lock();
+            if (route.capacity > reservations.size())
+                return this.reservations.add(reservation);
+            throw new FullFlightException();
+        } finally {
+            writeLockReservation.unlock();
+        }
     }
 
     /**
      * Removes a reservation to this flight.
      *
-     * @param reservationId the id of the reservation.
+     * @param reservation the id of the reservation.
      * @return true if this set contained the specified element.
      */
-    public boolean removeReservation(UUID reservationId) {
-        cancelSeat();
-        return this.reservations.remove(reservationId);
+    public boolean removeReservation(Reservation reservation) {
+        try {
+            writeLockReservation.lock();
+            return this.reservations.remove(reservation);
+        } finally {
+            writeLockReservation.unlock();
+        }
     }
 
     /**
@@ -81,8 +103,13 @@ public class Flight {
      *
      * @return reservation's ids
      */
-    public Set<UUID> getReservations() {
-        return new HashSet<>(reservations);
+    public Set<Reservation> getReservations() {
+        try {
+            readLockReservation.lock();
+            return new HashSet<>(reservations);
+        } finally {
+            readLockReservation.unlock();
+        }
     }
 
     /**
@@ -91,18 +118,39 @@ public class Flight {
      * @return true if there is a seat.
      */
     public boolean seatAvailable() {
-        return route.capacity > currentOccupation;
+        try {
+            readLockReservation.lock();
+            return route.capacity > reservations.size();
+        } finally {
+            readLockReservation.unlock();
+        }
     }
 
-    public void preReservationSeat() throws FullFlightException {
-        if (seatAvailable())
-            currentOccupation++;
-        else
-            throw new FullFlightException();
+    public void cancelFlight() {
+        try {
+            writeLockReservation.lock();
+            for (Reservation reservation : reservations) {
+                reservation.cancelReservation(id);
+            }
+        } finally {
+            writeLockReservation.unlock();
+        }
     }
 
-    public void cancelSeat() {
-        if (currentOccupation > 0)
-            currentOccupation--;
+    public void unlock() {
+        writeLockReservation.unlock();
+    }
+
+    public void lock() {
+        writeLockReservation.lock();
+    }
+
+    @Override
+    public String toString() {
+        return "Flight{" +
+                "Day =" + this.date.toString() +
+                "\nroute from =" + route.origin +
+                "to =" + route.destination +
+                '}';
     }
 }
