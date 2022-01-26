@@ -1,12 +1,15 @@
 package system;
 
+import airport.PossiblePath;
 import airport.Reservation;
 import airport.Route;
 import exceptions.*;
+import users.Notification;
 import users.User;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 
@@ -30,7 +33,6 @@ public interface IAirportSystem {
      * @param day the day.
      * @return all canceled @see airport.Reservation .
      */
-    //USERNAME -> garantir q é admin
     Set<Reservation> cancelDay(LocalDate day) throws DayAlreadyCanceledException;
 
     /**
@@ -46,7 +48,7 @@ public interface IAirportSystem {
      * @throws RouteDoesntExistException          if there is no route possible.
      */
     UUID reserveFlight(String userName, List<String> cities, LocalDate start, LocalDate end)
-            throws BookingFlightsNotPossibleException, RouteDoesntExistException, UserNotFoundException;
+            throws BookingFlightsNotPossibleException, RouteDoesntExistException, UserNotFoundException, InvalidDateException;
 
     /**
      * Cancels a flight.
@@ -54,7 +56,7 @@ public interface IAirportSystem {
      * @param userName      the name of the client
      * @param reservationId the id of the reservation
      * @return the deleted @see airport.Reservation .
-     * @throws ReservationNotFoundException                 is launched if the reservation doesn't exist in the AirportSystem
+     * @throws ReservationNotFoundException                 is launched if the reservation doesn't exist in the system.AirportSystem
      * @throws ReservationDoesNotBelongToTheClientException is launched if the reservation doesn't belong to the given
      *                                                      client
      */
@@ -67,6 +69,15 @@ public interface IAirportSystem {
      * @return the list of the existent routes.
      */
     List<Route> getRoutes();
+
+    PossiblePath getPathsBetween(String from, String dest) throws RouteDoesntExistException;
+
+    /**
+     * @param username the name of the user
+     * @return Reservations
+     * @throws UserNotFoundException Invalid username.
+     */
+    Set<Reservation> getReservationsFromClient(String username) throws UserNotFoundException;
 
     /**
      * Registers a client into the system.
@@ -108,6 +119,8 @@ public interface IAirportSystem {
     default void changeUserPassword(String username, String oldPassword, String newPassword)
             throws UserNotFoundException, InvalidCredentialsException {
         User user = authenticate(username, oldPassword);
-        user.changerUserPassword(newPassword);
+        user.changePassword(newPassword);
     }
+
+    Queue<Notification> getNotificationsByUsername(String username) throws UserNotFoundException;
 }

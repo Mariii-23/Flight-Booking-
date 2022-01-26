@@ -34,7 +34,6 @@ public class Reservation {
 
     private final Lock lockFlights;
 
-
     /**
      * Constructor
      *
@@ -71,6 +70,26 @@ public class Reservation {
         this.lockFlights = new ReentrantLock();
     }
 
+    public static Reservation deserialize(byte[] bytes) {
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+
+        byte[] idB = new byte[bb.getInt()];
+        bb.get(idB);
+        var id = UUID.fromString(new String(idB, StandardCharsets.UTF_8));
+
+        byte[] usernameB = new byte[bb.getInt()];
+        bb.get(usernameB);
+        String username = new String(usernameB, StandardCharsets.UTF_8);
+
+        int size = bb.getInt();
+        Set<Flight> flights = new HashSet<>(size);
+        for (int i = 0; i < size; i++) {
+            Flight flight = Flight.deserialize(bb);
+            flights.add(flight);
+        }
+        return new Reservation(id, username, flights);
+    }
+
     /**
      * Cancel the reservation on all flights involved in the given reservation
      */
@@ -104,17 +123,12 @@ public class Reservation {
         }
     }
 
-    /**
-     * Checks if the given user made the reservation
-     *
-     * @return true if are the same user
-     */
-    public boolean checksUser(String username) {
-        return client.getUsername().equals(username);
-    }
-
     public User getClient() {
         return client;
+    }
+
+    public String getUsernameClient() {
+        return client.getUsername();
     }
 
     public Set<Flight> getFlights() {
@@ -122,57 +136,41 @@ public class Reservation {
     }
 
     public byte[] serialize() {
-        var uuid = id.toString().getBytes(StandardCharsets.UTF_8);
-        byte[] user = client.getUsername().getBytes(StandardCharsets.UTF_8);
-        var flights = this.flights.stream().map(Flight::serialize).collect(Collectors.toSet());
-        ByteBuffer bb = ByteBuffer.allocate(
-                Integer.BYTES + uuid.length +
-                        Integer.BYTES + user.length +
-                        Integer.BYTES + flights.stream().mapToInt(arr -> arr.length).sum()
-        );
+        try {
+            lockFlights.lock();
+            var uuid = id.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] user = client.getUsername().getBytes(StandardCharsets.UTF_8);
+            var flights = this.flights.stream().map(Flight::serialize).collect(Collectors.toSet());
+            ByteBuffer bb = ByteBuffer.allocate(
+                    Integer.BYTES + uuid.length +
+                            Integer.BYTES + user.length +
+                            Integer.BYTES + flights.stream().mapToInt(arr -> arr.length).sum()
+            );
 
-        bb.putInt(uuid.length);
-        bb.put(uuid);
+            bb.putInt(uuid.length);
+            bb.put(uuid);
 
-        bb.putInt(user.length);
-        bb.put(user);
+            bb.putInt(user.length);
+            bb.put(user);
 
-        bb.putInt(flights.size());
-        for (byte[] flight : flights) {
-            bb.put(flight); // Flight
+            bb.putInt(flights.size());
+            for (byte[] flight : flights) {
+                bb.put(flight); // Flight
+            }
+
+            return bb.array();
+        } finally {
+            lockFlights.unlock();
         }
-
-        return bb.array();
-    }
-
-    public static Reservation deserialize(byte[] bytes) {
-        ByteBuffer bb = ByteBuffer.wrap(bytes);
-
-        byte[] idB = new byte[bb.getInt()];
-        bb.get(idB);
-        var id = UUID.fromString(new String(idB, StandardCharsets.UTF_8));
-
-        byte[] usernameB = new byte[bb.getInt()];
-        bb.get(usernameB);
-        String username = new String(usernameB, StandardCharsets.UTF_8);
-
-        int size = bb.getInt();
-        Set<Flight> flights = new HashSet<>(size);
-        for (int i = 0; i < size; i++) {
-            Flight flight = Flight.deserialize(bb);
-            flights.add(flight);
-        }
-        return new Reservation(id, username, flights);
     }
 
     @Override
     public String toString() {
         StringBuilder res = new StringBuilder();
-        res.append("Reservation{" +
-                "client=" + client +
-                ", flights=");
-        for (Flight one : flights)
-            res.append(flights);
+        res.append("id=").append(this.id).append(" client=").append(client).append(" flights=");
+
+        for (Flight flight : flights) res.append(flight);
+
         return res.toString();
     }
 }

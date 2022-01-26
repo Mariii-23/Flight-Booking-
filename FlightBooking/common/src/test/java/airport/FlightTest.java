@@ -30,14 +30,6 @@ public class FlightTest {
         System.out.println("Ending test");
     }
 
-    //@org.junit.jupiter.api.BeforeEach
-    //void setUp() {
-    //}
-
-    //@org.junit.jupiter.api.AfterEach
-    //void tearDown() {
-    //}
-
 
     private static Stream<Arguments> flights() {
         Admin admin = new Admin("Diogo", "Diogo1");

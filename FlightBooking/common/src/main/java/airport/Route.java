@@ -5,7 +5,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 
 /**
  * This class stores the information about routes between cities.
@@ -54,7 +53,7 @@ public class Route {
 
         int capacity = bb.getInt();
 
-        Route route= new Route(originName, destinationName, capacity);
+        Route route = new Route(originName, destinationName, capacity);
         logger.info("Deserialize route: " + route);
         return route;
     }

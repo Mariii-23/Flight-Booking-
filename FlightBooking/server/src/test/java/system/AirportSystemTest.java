@@ -2,13 +2,15 @@ package system;
 
 import airport.Route;
 import exceptions.*;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import system.AirportSystem;
 import users.Admin;
 import users.Client;
 import users.User;
@@ -20,7 +22,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class AirportSystemTest {
 
@@ -93,14 +95,13 @@ class AirportSystemTest {
         initUser();
         initRoutes_LondonParisLisbon();
     }
+
     @DisplayName("Add Route")
     @ParameterizedTest
     @CsvSource({"Lisbon,London,30", "London,Paris,1", "Lisbon,Paris,23"})
     public void addRoute(String orig, String dest, int capacity) {
         //System.out.println("Add route");
-        Assertions.assertDoesNotThrow(() -> {
-            airportSystem.addRoute(orig, dest, capacity);
-        });
+        Assertions.assertDoesNotThrow(() -> airportSystem.addRoute(orig, dest, capacity));
     }
 
 
@@ -231,12 +232,12 @@ class AirportSystemTest {
             fail();
         } catch (BookingFlightsNotPossibleException ignored) {
             //System.out.println("One flight isn't possible, the pre-reservations should be removed.");
-        } catch (RouteDoesntExistException | UserNotFoundException ignored) {
+        } catch (Exception ignored) {
             fail();
         }
         try {
             airportSystem.reserveFlight(username, cities3, date, date);
-        } catch (RouteDoesntExistException | BookingFlightsNotPossibleException | UserNotFoundException e) {
+        } catch (Exception e) {
             fail();
         }
     }
@@ -514,8 +515,4 @@ class AirportSystemTest {
             airportSystem.authenticate(username, password.toUpperCase());
         });
     }
-
-
-
-
 }

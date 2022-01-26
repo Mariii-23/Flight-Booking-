@@ -9,6 +9,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import system.AirportSystem;
 import users.Admin;
 import users.Client;
 import users.User;
@@ -20,7 +21,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class AirportSystemTest {
 
@@ -237,12 +238,12 @@ class AirportSystemTest {
             fail();
         } catch (BookingFlightsNotPossibleException ignored) {
             //System.out.println("One flight isn't possible, the pre-reservations should be removed.");
-        } catch (RouteDoesntExistException | UserNotFoundException ignored) {
+        } catch (Exception ignored) {
             fail();
         }
         try {
             airportSystem.reserveFlight(username, cities3, date, date);
-        } catch (RouteDoesntExistException | BookingFlightsNotPossibleException | UserNotFoundException e) {
+        } catch (Exception e) {
             fail();
         }
     }

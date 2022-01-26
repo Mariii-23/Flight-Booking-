@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import request.RequestType;
 import system.IAirportSystem;
 import users.Admin;
+import users.Notification;
 import users.User;
 
 import java.io.IOException;
@@ -56,10 +57,15 @@ public class ClientHandler implements Runnable {
                         case CANCEL_DAY -> cancelDay(data);
                         case INSERT_ROUTE -> insertRoute(data);
 
-                        case GET_ROUTES -> getRoutes(data);
+                        case GET_ROUTES -> getRoutes();
                         case GET_RESERVATIONS -> getReservations();
+                        case GET_PATHS_BETWEEN -> getPathsBetween(data);
                         case RESERVE -> reserve(data);
                         case CANCEL_RESERVATION -> cancelReservation(data);
+                        case LOGOUT -> logout();
+                        case CHANGE_PASSWORD -> changePassword(data);
+
+                        case GET_NOTIFICATION -> getNotification();
                     }
 
                     logger.info("Request with type " + RequestType.getRequestType(frame.tag()) + " has been successfully handled!");
@@ -88,23 +94,28 @@ public class ClientHandler implements Runnable {
 
     }
 
-    private void getReservations() throws IOException {
-        //Set<Reservation> reservations = airportSystem.;
-        Set<Reservation> reservations = new HashSet<>();
+    private void changePassword(List<byte[]> data) throws IOException {
+        account.changePassword(new String(data.get(0)));
+        sendOk(CHANGE_PASSWORD.ordinal(), new ArrayList<>());
+    }
 
-        sendOk(CANCEL_RESERVATION.ordinal(), reservations.stream().map(Reservation::serialize).collect(Collectors.toList()));
+    private void getReservations() throws IOException, UserNotFoundException, UserNotLoggedInException {
+        if (!isLoggedIn()) throw new UserNotLoggedInException();
+        Set<Reservation> reservations = airportSystem.getReservationsFromClient(account.getUsername());
+
+        sendOk(GET_RESERVATIONS.ordinal(), reservations.stream().map(Reservation::serialize).collect(Collectors.toList()));
     }
 
     private void cancelReservation(List<byte[]> data) throws ReservationNotFoundException,
-            ReservationDoesNotBelongToTheClientException, UserNotFoundException, IOException {
-
+            ReservationDoesNotBelongToTheClientException, UserNotFoundException, IOException, UserNotLoggedInException {
+        if (!isLoggedIn()) throw new UserNotLoggedInException();
         Reservation reservation = airportSystem.cancelReservation(account.getUsername(), UUID.fromString(new String(data.get(0))));
         List<byte[]> list = new ArrayList<>();
         list.add(reservation.serialize());
         sendOk(CANCEL_RESERVATION.ordinal(), list);
     }
 
-    private void reserve(List<byte[]> data) throws UserNotFoundException, RouteDoesntExistException, BookingFlightsNotPossibleException, IOException, UserNotLoggedInException {
+    private void reserve(List<byte[]> data) throws UserNotFoundException, RouteDoesntExistException, BookingFlightsNotPossibleException, IOException, UserNotLoggedInException, InvalidDateException {
         if (!isLoggedIn()) throw new UserNotLoggedInException();
         List<String> cities = new ArrayList<>();
 
@@ -122,8 +133,20 @@ public class ClientHandler implements Runnable {
         sendOk(RESERVE.ordinal(), list);
     }
 
-    private void getRoutes(List<byte[]> data) throws IOException {
+    private void getRoutes() throws IOException {
         sendOk(GET_ROUTES.ordinal(), airportSystem.getRoutes().stream().map(Route::serialize).collect(Collectors.toList()));
+    }
+
+    private void getNotification() throws IOException, UserNotFoundException {
+        var all = airportSystem.getNotificationsByUsername(account.getUsername());
+        sendOk(GET_NOTIFICATION.ordinal(), all.stream().map(Notification::serialize).collect(Collectors.toList()));
+    }
+
+    private void getPathsBetween(List<byte[]> data) throws RouteDoesntExistException, IOException {
+        String origin = new String(data.get(0));
+        String destination = new String(data.get(1));
+        sendOk(GET_PATHS_BETWEEN.ordinal(),
+                Collections.singletonList(airportSystem.getPathsBetween(origin, destination).serialize()));
     }
 
     private void insertRoute(List<byte[]> data) throws RouteDoesntExistException, RouteAlreadyExistsException, IOException, ForbiddenException {
@@ -157,16 +180,13 @@ public class ClientHandler implements Runnable {
         sendOk(LOGIN.ordinal(), new ArrayList<>());
     }
 
-    private void logout() {
+    private void logout() throws IOException {
         account = null;
-
-        // TODO: LogOut
-        //sendOk(LOGOUT, new ArrayList<>());
+        sendOk(LOGOUT.ordinal(), new ArrayList<>());
     }
 
     private void sendOk(int type, List<byte[]> args) throws IOException {
         if (args.size() == 0) args.add("Ok".getBytes(StandardCharsets.UTF_8));
         taggedConnection.send(type, args);
     }
-
 }

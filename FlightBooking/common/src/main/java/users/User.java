@@ -1,11 +1,12 @@
 package users;
 
+import airport.Flight;
+import airport.Reservation;
 import encryption.BCrypt;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+
 
 /**
  * User class.
@@ -20,11 +21,17 @@ public class User {
     /**
      * Set of the reservations of the client
      */
-    private final Set<UUID> reservations;
+    private Set<UUID> reservations;
     /**
      * Password.
      */
     private String password;
+
+    /**
+     * Set of the current notifications of the client.
+     */
+    private Queue<Notification> notifications;
+
 
     /**
      * Constructor
@@ -37,6 +44,7 @@ public class User {
         this.username = username;
         this.reservations = new HashSet<>();
         this.lock = new ReentrantLock();
+        this.notifications = new ArrayDeque<>();
     }
 
     public User(String username) {
@@ -44,6 +52,7 @@ public class User {
         this.password = null;
         this.reservations = null;
         this.lock = new ReentrantLock();
+        this.notifications = new ArrayDeque<>();
     }
 
     /**
@@ -80,7 +89,7 @@ public class User {
      *
      * @param newPassword new password.
      */
-    public void changerUserPassword(String newPassword) {
+    public void changePassword(String newPassword) {
         try {
             lock.lock();
             this.password = BCrypt.hashpw(newPassword, BCrypt.gensalt());
@@ -123,6 +132,57 @@ public class User {
         } finally {
             lock.unlock();
         }
+    }
+
+
+    public boolean emptyNotifications() {
+        try {
+            lock.lock();
+            return notifications.isEmpty();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public Notification removeNotification() {
+        try {
+            lock.lock();
+            return notifications.remove();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public Queue<Notification> removeAllNotification() {
+        try {
+            lock.lock();
+            Queue<Notification> remove = notifications;
+            notifications = new ArrayDeque<>();
+            return remove;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void addNotification(Notification notification) {
+        try {
+            lock.lock();
+            notifications.add(notification);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void addCancelReservationNotifications(Reservation reservation) {
+        StringBuilder msg = new StringBuilder("[Reservation Cancelled] ");
+        msg.append(reservation.id).append(" [FLIGHTS]: ");
+        Set<Flight> flights = reservation.getFlights();
+        for (Flight flight : flights) {
+            msg.append(flight.route.origin);
+            msg.append(" ; ");
+        }
+        Notification notification = new Notification(msg.toString());
+        addNotification(notification);
     }
 
     @Override

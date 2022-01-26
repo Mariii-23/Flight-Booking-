@@ -1,9 +1,10 @@
 package system;
 
-import airport.Reservation;
-import exceptions.*;
-import org.junit.jupiter.api.*;
-import system.AirportSystem;
+import exceptions.RouteAlreadyExistsException;
+import exceptions.RouteDoesntExistException;
+import exceptions.UsernameAlreadyExistsException;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -47,7 +48,7 @@ class AirportSystemThreadTest {
      * Private method to initialize airport system.
      * Capacity of each flight is 1.
      */
-    private void initRoutes_LondonParisLisbon()  {
+    private void initRoutes_LondonParisLisbon() {
         //            System.out.println(airportSystem.getReservation(reservation).toString());
         try {
             airportSystem.addRoute("London", "Paris", 2);
@@ -63,7 +64,7 @@ class AirportSystemThreadTest {
      * Private method to initialize airport system.
      * Capacity of each flight is 1.
      */
-    private void initRoutes_LondonParisLisbon(int routeCapacity)  {
+    private void initRoutes_LondonParisLisbon(int routeCapacity) {
         //            System.out.println(airportSystem.getReservation(reservation).toString());
         try {
             airportSystem.addRoute("London", "Paris", routeCapacity);
@@ -91,7 +92,7 @@ class AirportSystemThreadTest {
 
     // -------------------- Add Route -------------------
     @org.junit.jupiter.api.Test
-    void testMultipleReservations(){
+    void testMultipleReservations() {
         int N = 20;
         int numberDays = 3;
         int routeCapacity = 2;
@@ -100,28 +101,26 @@ class AirportSystemThreadTest {
         Thread[] threads = new Thread[N];
         makeReservation makeReservation = new makeReservation(airportSystem, numberDays);
 
-        for (int i = 0; i < N; i++){
+        for (int i = 0; i < N; i++) {
             threads[i] = new Thread(makeReservation);
         }
-        for (Thread t : threads){
+        for (Thread t : threads) {
             t.start();
         }
         try {
-            for (Thread t : threads){
+            for (Thread t : threads) {
                 t.join();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
         assert makeReservation.reservationSucceed == routeCapacity * numberDays;
     }
 
     private class makeReservation implements Runnable {
-        private AirportSystem airportSystem;
-
         protected int reservationSucceed;
         protected int numberDays;
+        private AirportSystem airportSystem;
         private ReentrantLock lock;
 
         public makeReservation(AirportSystem airportSystem, int numberDays) {
